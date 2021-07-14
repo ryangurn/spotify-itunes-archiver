@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="SpotifyPlaylistExport" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="spotify-itunes-archiver" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="PlaylistExport" />
+    <envs>
+      <env name="SPOTIFY_ID" value="d7e298052f374aea9e7a4a103d69c09a" />
+      <env name="SPOTIFY_SECRET" value="4fb2e68b269b4f119ddc798305ad8211" />
+    </envs>
+    <kind value="FILE" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/spotify.go" />
+    <method v="2" />
+  </configuration>
+</component>
