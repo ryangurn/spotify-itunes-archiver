@@ -38,20 +38,7 @@ func Open(url string) {
 
 }
 
-func main() {
-	// first start an HTTP server
-	http.HandleFunc("/callback", completeAuth)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Got request for:", r.URL.String())
-	})
-	go http.ListenAndServe(":8080", nil)
-
-	url := auth.AuthURL(state)
-	Open(url)
-
-	// wait for auth to complete
-	client := <-ch
-
+func PlaylistExport(client *spotify.Client) {
 	// create the csv
 	file, err := os.OpenFile("spotify.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
@@ -129,7 +116,33 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+}
 
+func Spotify() *spotify.Client {
+	// first start an HTTP server
+	http.HandleFunc("/callback", completeAuth)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Got request for:", r.URL.String())
+	})
+	go http.ListenAndServe(":8080", nil)
+
+	url := auth.AuthURL(state)
+	Open(url)
+
+	// wait for auth to complete
+	client := <-ch
+	return client
+}
+
+func main() {
+	functionality := os.Args[1]
+
+	if functionality == "PlaylistExport" {
+		client := Spotify()
+		PlaylistExport(client)
+	} else {
+		fmt.Println("Unknown func: ", functionality)
+	}
 }
 
 
