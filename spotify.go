@@ -14,7 +14,7 @@ import (
 const redirectURI = "http://localhost:8080/callback"
 
 var (
-	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopeUserReadPrivate)
+	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopeUserReadPrivate, spotify.ScopeUserLibraryRead)
 	ch    = make(chan *spotify.Client)
 	state = "abc123"
 )
@@ -40,7 +40,7 @@ func Open(url string) {
 
 func PlaylistExport(client *spotify.Client) {
 	// create the csv
-	file, err := os.OpenFile("spotify.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile("spotify-playlists.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
@@ -118,6 +118,59 @@ func PlaylistExport(client *spotify.Client) {
 	}
 }
 
+func SongExport(client *spotify.Client) {
+	// create the csv
+	file, err := os.OpenFile("spotify-songs.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	defer file.Close()
+
+	datawriter := bufio.NewWriter(file)
+	defer datawriter.Flush()
+
+	// write csv header
+	datawriter.WriteString("\"Artists\",\"Album\",\"Track Name\"\n")
+
+	trackPage, err := client.CurrentUsersTracks()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Total Tracks: ", trackPage.Total)
+	TrackCount := 1
+	for page := 1; ; page++ {
+		log.Printf("  Page %d has %d tracks", page, len(trackPage.Tracks))
+
+		for _, track := range trackPage.Tracks {
+			fmt.Print("Track Count: ", TrackCount, " | ")
+			TrackCount++
+
+			var strArtist string
+			for i, artists := range track.Artists {
+				strArtist += artists.Name
+				fmt.Print(artists.Name, "")
+				if i != len(track.Artists)-1 {
+					strArtist += " / "
+					fmt.Print(",")
+				}
+			}
+			datawriter.WriteString("\"" +  strArtist + "\",\"" + track.Album.Name + "\",\"" + track.Name + "\"\n")
+			fmt.Println(" >", track.Album.Name ,">", track.Name)
+		}
+
+
+		err = client.NextPage(trackPage)
+		if err == spotify.ErrNoMorePages {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
 func Spotify() *spotify.Client {
 	// first start an HTTP server
 	http.HandleFunc("/callback", completeAuth)
@@ -140,6 +193,9 @@ func main() {
 	if functionality == "PlaylistExport" {
 		client := Spotify()
 		PlaylistExport(client)
+	} else if functionality == "SongExport" {
+		client := Spotify()
+		SongExport(client)
 	} else {
 		fmt.Println("Unknown func: ", functionality)
 	}
