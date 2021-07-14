@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/zmb3/spotify"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"runtime"
 )
@@ -46,10 +48,23 @@ func main() {
 
 	url := auth.AuthURL(state)
 	Open(url)
-	// fmt.Println("Please log in to Spotify by visiting the following playlistPage in your browser:", url)
 
 	// wait for auth to complete
 	client := <-ch
+
+	// create the csv
+	file, err := os.OpenFile("spotify.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	defer file.Close()
+
+	datawriter := bufio.NewWriter(file)
+	defer datawriter.Flush()
+
+	// write csv header
+	datawriter.WriteString("\"Playlist Name\",\"Artists\",\"Album\",\"Track Name\"\n")
 
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser()
@@ -81,13 +96,17 @@ func main() {
 				for i, track := range tracks {
 					t := track.Track
 					fmt.Print("Track Counter: ",i+1, " ")
+					var strArtist string
 					for i, artists := range t.Artists {
+						strArtist += artists.Name
 						fmt.Print(artists.Name, "")
 						if i != len(t.Artists)-1 {
+							strArtist += " / "
 							fmt.Print(",")
 						}
 					}
 					fmt.Println(" >", t.Album.Name ,">", t.Name)
+					datawriter.WriteString("\"" + playlist.Name + "\",\"" +  strArtist + "\",\"" + t.Album.Name + "\",\"" + t.Name + "\"\n")
 				}
 
 				err = client.NextPage(playlistData)
